@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopSphere | Microservices Store</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6fa;
+      color: #202938;
+    }
+    header {
+      background: #17365d;
+      color: white;
+      padding: 22px;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 8px; }
+    main { max-width: 1050px; margin: 25px auto; padding: 15px; }
+    section {
+      background: white;
+      padding: 22px;
+      margin-bottom: 22px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px #00000012;
+    }
+    h2 { color: #17365d; }
+    input, select, button {
+      padding: 11px;
+      margin: 6px 4px 6px 0;
+      border-radius: 5px;
+      border: 1px solid #cbd5e1;
+      font-size: 15px;
+    }
+    button {
+      background: #1765ae;
+      color: white;
+      border: 0;
+      cursor: pointer;
+    }
+    button:hover { background: #104b84; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    .product {
+      padding: 15px;
+      border: 1px solid #dce2ea;
+      border-radius: 8px;
+    }
+    .price { color: #087443; font-weight: bold; }
+    .message { margin-top: 10px; white-space: pre-wrap; }
+    .success { color: #087443; }
+    .error { color: #b42318; }
+    footer { text-align: center; padding: 20px; color: #64748b; }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1 id="site-title">ShopSphere</h1>
+  <p>AWS EKS Microservices DevSecOps Demo Store</p>
+</header>
+
+<main>
+  <section>
+    <h2>Product Catalog</h2>
+    <button id="refresh-products" onclick="loadProducts()">
+      Refresh Products
+    </button>
+    <div id="product-list" class="products"></div>
+    <p id="product-message" class="message" role="status"></p>
+  </section>
+
+  <section>
+    <h2>User Registration</h2>
+    <form id="registration-form">
+      <input id="user-name" placeholder="Full Name"
+             minlength="2" required>
+      <input id="user-email" type="email"
+             placeholder="Email Address" required>
+      <button id="register-button" type="submit">
+        Register
+      </button>
+    </form>
+    <p id="registration-result" class="message" role="status"></p>
+  </section>
+
+  <section>
+    <h2>Place Order</h2>
+    <form id="order-form">
+      <select id="product-select" required>
+        <option value="">Select Product</option>
+      </select>
+      <input id="order-quantity" type="number"
+             min="1" value="1" required>
+      <button id="place-order-button" type="submit">
+        Place Order
+      </button>
+    </form>
+    <p id="order-result" class="message" role="status"></p>
+  </section>
+
+  <section>
+    <h2>Mock Payment</h2>
+    <form id="payment-form">
+      <input id="payment-order-id" type="number"
+             min="1" placeholder="Order ID" required>
+      <button id="pay-button" type="submit">
+        Process Mock Payment
+      </button>
+    </form>
+    <p id="payment-result" class="message" role="status"></p>
+  </section>
+</main>
+
+<footer>
+  ShopSphere | AWS EKS | Terraform | Kubernetes | DevSecOps
+</footer>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  function showMessage(id, message, success = true) {
+    const element = $(id);
+    element.textContent = message;
+    element.className = "message " + (success ? "success" : "error");
+  }
+
+  async function apiRequest(path, options = {}) {
+    let response;
+
+    try {
+      response = await fetch(path, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+    } catch {
+      throw new Error("Unable to connect to the application API");
+    }
+
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("Invalid response from application API");
+    }
+
+    if (!response.ok) {
+      let detail = data.detail || "Request failed";
+      if (typeof detail !== "string") {
+        detail = JSON.stringify(detail);
+      }
+      throw new Error(detail);
+    }
+
+    return data;
+  }
+
+  async function loadProducts() {
+    const list = $("product-list");
+    const select = $("product-select");
+
+    list.replaceChildren();
+    select.replaceChildren(new Option("Select Product", ""));
+
+    try {
+      const products = await apiRequest("/api/products");
+
+      for (const product of products) {
+        const card = document.createElement("div");
+        card.className = "product";
+
+        const title = document.createElement("h3");
+        title.textContent = product.name;
+
+        const price = document.createElement("p");
+        price.className = "price";
+        price.textContent = "$" + product.price.toFixed(2);
+
+        const stock = document.createElement("p");
+        stock.textContent = "Stock: " + product.stock;
+
+        card.append(title, price, stock);
+        list.appendChild(card);
+
+        select.add(new Option(product.name, product.id));
+      }
+
+      showMessage("product-message", "Products loaded successfully");
+    } catch (error) {
+      showMessage("product-message", error.message, false);
+    }
+  }
+
+  $("registration-form").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    try {
+      const user = await apiRequest("/api/users", {
+        method: "POST",
+        body: JSON.stringify({
+          name: $("user-name").value.trim(),
+          email: $("user-email").value.trim()
+        })
+      });
+
+      showMessage(
+        "registration-result",
+        "Registration successful! User ID: " + user.id
+      );
+    } catch (error) {
+      showMessage("registration-result", error.message, false);
+    }
+  });
+
+  $("order-form").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    try {
+      const order = await apiRequest("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({
+          product_id: Number($("product-select").value),
+          quantity: Number($("order-quantity").value)
+        })
+      });
+
+      $("payment-order-id").value = order.order_id;
+
+      showMessage(
+        "order-result",
+        "Order created! Order ID: " + order.order_id +
+        " | Total: $" + order.total_amount.toFixed(2)
+      );
+    } catch (error) {
+      showMessage("order-result", error.message, false);
+    }
+  });
+
+  $("payment-form").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    try {
+      const payment = await apiRequest("/api/payments", {
+        method: "POST",
+        body: JSON.stringify({
+          order_id: Number($("payment-order-id").value)
+        })
+      });
+
+      showMessage(
+        "payment-result",
+        "Mock Payment " + payment.status +
+        " | Payment ID: " + payment.payment_id +
+        " | Amount: $" + payment.amount.toFixed(2)
+      );
+    } catch (error) {
+      showMessage("payment-result", error.message, false);
+    }
+  });
+
+  loadProducts();
+</script>
+</body>
+</html>
+
