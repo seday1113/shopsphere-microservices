@@ -1,0 +1,29 @@
+name: ShopSphere SonarQube Analysis
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sonar-analysis:
+    name: SonarQube Code Analysis
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, Linux, X64, shopsphere-sonar]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run SonarQube Scanner
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: http://127.0.0.1:9000
+        with:
+          args: >
+            -Dsonar.projectKey=shopsphere-microservices
+            -Dsonar.sources=app
