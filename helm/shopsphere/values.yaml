@@ -1,0 +1,69 @@
+imageRegistry: "450690783347.dkr.ecr.us-east-1.amazonaws.com/shopsphere"
+
+services:
+  frontend:
+    enabled: true
+    imageTag: v1
+    replicas: 1
+    port: 8080
+    runAsUser: 101
+    cpuRequest: 50m
+    memoryRequest: 64Mi
+    cpuLimit: 250m
+    memoryLimit: 256Mi
+
+  user-service:
+    enabled: true
+    imageTag: v2
+    replicas: 1
+    port: 8000
+    runAsUser: 10001
+    cpuRequest: 100m
+    memoryRequest: 128Mi
+    cpuLimit: 500m
+    memoryLimit: 512Mi
+
+  product-service:
+    enabled: true
+    imageTag: v1
+    replicas: 1
+    port: 8000
+    runAsUser: 10001
+    cpuRequest: 100m
+    memoryRequest: 128Mi
+    cpuLimit: 500m
+    memoryLimit: 512Mi
+
+  order-service:
+    enabled: true
+    imageTag: v1
+    replicas: 1
+    port: 8000
+    runAsUser: 10001
+    cpuRequest: 100m
+    memoryRequest: 128Mi
+    cpuLimit: 500m
+    memoryLimit: 512Mi
+
+  payment-service:
+    enabled: true
+    imageTag: v1
+    replicas: 1
+    port: 8000
+    runAsUser: 10001
+    cpuRequest: 100m
+    memoryRequest: 128Mi
+    cpuLimit: 500m
+    memoryLimit: 512Mi
+
+redis:
+  enabled: true
+  image: redis:7.4-alpine
+  replicas: 1
+  storageClass: shopsphere-gp3
+  storageSize: 1Gi
+
+database:
+  host: shopsphere-phase9-postgres.cefweky0ya2n.us-east-1.rds.amazonaws.com
+  port: "5432"
+  name: shopsphere

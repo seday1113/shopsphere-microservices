@@ -1,0 +1,83 @@
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    app: {{ $name }}
+spec:
+  replicas: {{ $svc.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ $svc.runAsUser }}
+        {{- if eq $name "frontend" }}
+        runAsGroup: 101
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: {{ $name }}
+          image: "{{ $.Values.imageRegistry }}/{{ $name }}:{{ $svc.imageTag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ $svc.port }}
+          {{- if eq $name "user-service" }}
+          env:
+            - name: DB_HOST
+              value: {{ $.Values.database.host | required "database.host is required" | quote }}
+            - name: DB_PORT
+              value: {{ $.Values.database.port | default "5432" | quote }}
+            - name: DB_NAME
+              value: {{ $.Values.database.name | default "shopsphere" | quote }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shopsphere-postgres-credentials
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shopsphere-postgres-credentials
+                  key: DB_PASSWORD
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: {{ if eq $name "frontend" }}/{{ else }}/health{{ end }}
+              port: {{ $svc.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ if eq $name "frontend" }}/{{ else }}/health{{ end }}
+              port: {{ $svc.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: {{ $svc.cpuRequest | quote }}
+              memory: {{ $svc.memoryRequest | quote }}
+            limits:
+              cpu: {{ $svc.cpuLimit | quote }}
+              memory: {{ $svc.memoryLimit | quote }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+{{- end }}
+{{- end }}
