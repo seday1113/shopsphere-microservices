@@ -37,3 +37,23 @@ venv/
 .vscode/
 .idea/
 .DS_Store
+
+# SonarQube generated files
+.scannerwork/
+
+# Python coverage generated files
+.coverage
+coverage.xml
+htmlcov/
+
+# Python cache
+__pycache__/
+.pytest_cache/
+.venv/
+
+# Local credentials and Terraform state
+.env
+.env.*
+*.tfstate
+*.tfstate.*
+*.tfplan
