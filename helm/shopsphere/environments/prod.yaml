@@ -1,6 +1,15 @@
 services:
   frontend:
-    enabled: false
+    enabled: true
+    imageTag: v1
+  user-service:
+    imageTag: v2
+  product-service:
+    imageTag: v2
+  order-service:
+    imageTag: v2
+  payment-service:
+    imageTag: v2
 
 redis:
   enabled: false

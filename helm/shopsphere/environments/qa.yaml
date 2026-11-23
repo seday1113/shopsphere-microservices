@@ -1,2 +1,9 @@
 redis:
   enabled: false
+services:
+  order-service:
+    imageTag: v2
+  payment-service:
+    imageTag: v2
+  product-service:
+    imageTag: v2
