@@ -70,9 +70,13 @@ def test_tc03_refresh_products(driver, base_url):
         "Products loaded successfully"
     )
 
-    assert driver.find_elements(
-        By.CSS_SELECTOR, "#product-list .product"
+    products = WebDriverWait(driver, 20).until(
+        EC.visibility_of_any_elements_located(
+            (By.CSS_SELECTOR, "#product-list .product")
+        )
     )
+
+    assert len(products) > 0
 
 
 def test_tc04_user_registration(driver, base_url):
