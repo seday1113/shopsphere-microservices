@@ -1,0 +1,52 @@
+name: QA Selenium Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shopsphere-qa-validation
+  cancel-in-progress: false
+
+jobs:
+  selenium-tests:
+    name: QA Browser Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      BASE_URL: https://qa.edayinternational.com
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -r tests/selenium/requirements.txt
+
+      - name: Verify Chrome
+        run: google-chrome --version
+
+      - name: Execute Selenium tests
+        run: |
+          mkdir -p artifacts
+          python -m pytest tests/selenium -v \
+            --junitxml=artifacts/junit.xml \
+            --html=artifacts/report.html \
+            --self-contained-html
+
+      - name: Upload QA test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-selenium-test-results
+          path: artifacts/
+          retention-days: 7
